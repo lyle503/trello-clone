@@ -1,6 +1,6 @@
 "use client";
 
-// Required for Clerk / Supabase setup
+// Required for Clerk / Supabase setup - we need to access the clerk session
 
 import {
   createContext,

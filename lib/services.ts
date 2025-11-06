@@ -1,8 +1,6 @@
 import { Board, BoardColumn } from "./supabase/models";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-// const supabase = createClient();
-
 export const boardService = {
   async getBoards(supabase: SupabaseClient, userId: string): Promise<Board[]> {
     const { data, error } = await supabase
@@ -90,6 +88,7 @@ export const boardDataService = {
         columnService.createColumn(supabase, {
           ...column,
           board_id: board.id,
+          user_id: boardData.userId,
         });
       })
     );
