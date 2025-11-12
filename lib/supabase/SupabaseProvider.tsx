@@ -32,7 +32,8 @@ export default function SupabaseProvider({
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!session) return;
+    // REMOVING THIS FOR NOW...CAUSING ISSUES
+    // if (!session) return;
     const client = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
