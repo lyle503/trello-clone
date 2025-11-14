@@ -14,7 +14,10 @@ export function useBoards() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadBoards();
+    // do i need this if statement?
+    if (user) {
+      loadBoards();
+    }
   }, [user, supabase]);
 
   async function loadBoards() {
@@ -89,5 +92,19 @@ export function useBoard(boardId: string) {
     }
   }
 
-  return { board, columns, loading, error };
+  async function updateBoard(boardId: string, updates: Partial<Board>) {
+    try {
+      const updatedBoard = await boardService.updateBoard(
+        supabase!,
+        boardId,
+        updates
+      );
+      setBoard(updatedBoard);
+      return updatedBoard;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update board");
+    }
+  }
+
+  return { board, columns, loading, error, updateBoard };
 }
