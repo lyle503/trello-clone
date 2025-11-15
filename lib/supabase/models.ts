@@ -17,6 +17,10 @@ export interface BoardColumn {
   user_id: string;
 }
 
+export type BoardColumnWithTasks = BoardColumn & {
+  tasks: Task[];
+};
+
 export interface Task {
   id: string;
   column_id: string;

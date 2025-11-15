@@ -1,4 +1,4 @@
-import { Board, BoardColumn } from "./supabase/models";
+import { Board, BoardColumn, Task } from "./supabase/models";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export const boardService = {
@@ -91,6 +91,29 @@ export const columnService = {
   },
 };
 
+export const taskService = {
+  // I wonder if it would be better to store board_id directly on the tasks table?
+  async getTasksByBoard(
+    supabase: SupabaseClient,
+    boardId: string
+  ): Promise<Task[]> {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select(
+        `
+        *,
+        board_columns!inner(board_id)
+        `
+      )
+      .eq("board_columns.board_id", boardId)
+      .order("sort_order", { ascending: true });
+
+    if (error) throw error;
+
+    return data || [];
+  },
+};
+
 export const boardDataService = {
   async getBoardWithColumns(supabase: SupabaseClient, boardId: string) {
     const [board, columns] = await Promise.all([
@@ -100,7 +123,16 @@ export const boardDataService = {
 
     if (!board) throw new Error("Board not found!");
 
-    return { board, columns };
+    // not only are we getting all columns, we are getting all tasks
+    const tasks = await taskService.getTasksByBoard(supabase, boardId);
+
+    // and assigning the correct tasks to each column
+    const columnsWithTasks = columns.map((column) => ({
+      ...column,
+      tasks: tasks.filter((task) => task.column_id === column.id),
+    }));
+
+    return { board, columnsWithTasks };
   },
 
   async createBoardWithDefaultColumns(

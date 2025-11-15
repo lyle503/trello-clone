@@ -14,9 +14,11 @@ import { useBoard } from "@/lib/hooks/useBoards";
 import { useParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 
+// for some reason, the page is re-rendering a lot
+// e.g. when you click on a different window and click back on this one
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
-  const { board, updateBoard } = useBoard(id);
+  const { board, updateBoard, columns } = useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -34,6 +36,13 @@ export default function BoardPage() {
       });
       setIsEditingTitle(false);
     } catch (e) {}
+  }
+
+  function getTotalTasks() {
+    return columns.reduce(
+      (totalSoFar, column) => totalSoFar + column.tasks.length,
+      0
+    );
   }
 
   return (
@@ -158,6 +167,19 @@ export default function BoardPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* BOARD CONTENT */}
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+        {/* Stats */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Total Tasks:</span>
+              {getTotalTasks()}
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
