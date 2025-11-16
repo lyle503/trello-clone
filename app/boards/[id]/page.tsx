@@ -1,6 +1,7 @@
 "use client";
 
 import Navbar from "@/components/navbar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,15 +21,57 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBoard } from "@/lib/hooks/useBoards";
-import { Plus } from "lucide-react";
+import { BoardColumnWithTasks } from "@/lib/supabase/models";
+import { MoreHorizontal, Plus } from "lucide-react";
 import { useParams } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, ReactNode, useState } from "react";
+
+type ColumnWrapper = {
+  column: BoardColumnWithTasks;
+  children: ReactNode;
+  onCreateTask: (taskData: any) => Promise<void>; // Promise because it edits DB
+  onEditColumn: (column: BoardColumnWithTasks) => void;
+};
+
+// extra component to make drag and drop logic easy
+function Column({
+  column,
+  children,
+  onCreateTask,
+  onEditColumn,
+}: ColumnWrapper) {
+  return (
+    <div className="w-full lg:shrink-0 lg:w-80">
+      <div className="bg-white rounded-lg shadow-sm border">
+        {/* Column Header */}
+        <div className="p-3 sm:p-4 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 min-w-0">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                {column.title}
+              </h3>
+              <Badge variant="secondary" className="text-xs shrink-0">
+                {column.tasks.length}
+              </Badge>
+            </div>
+            <Button variant="ghost" size="sm" className="shrink-0">
+              <MoreHorizontal />
+            </Button>
+          </div>
+        </div>
+
+        {/* COLUMN CONTENT */}
+        <div className="p-2">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 // for some reason, the page is re-rendering a lot
 // e.g. when you click on a different window and click back on this one
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
-  const { board, updateBoard, columns } = useBoard(id);
+  const { board, updateBoard, columns, createRealTask } = useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -53,6 +96,45 @@ export default function BoardPage() {
       (totalSoFar, column) => totalSoFar + column.tasks.length,
       0
     );
+  }
+
+  async function createTask(taskData: {
+    title: string;
+    description?: string;
+    assignee?: string;
+    dueDate?: string;
+    priority: "low" | "medium" | "high";
+  }) {
+    const targetColumn = columns[0]; // always adding to first column
+    if (!targetColumn) {
+      throw new Error("No column available");
+    }
+    await createRealTask(targetColumn.id, taskData);
+  }
+
+  //   might need to use any for now
+  async function handleCreateTask(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const taskData = {
+      title: formData.get("title") as string,
+      description: (formData.get("description") as string) || undefined,
+      assignee: (formData.get("assignee") as string) || undefined,
+      dueDate: (formData.get("dueDate") as string) || undefined,
+      priority: formData.get("priority") as "low" | "medium" | "high",
+      //   priority: (formData.get("priority") as "low" | "medium" | "high") || "medium",
+    };
+
+    if (taskData.title.trim()) {
+      await createTask(taskData);
+
+      // for closing the dialog after creating a task
+      // i don't like this though, want a better solution
+      const trigger = document.querySelector(
+        '[data-state="open"'
+      ) as HTMLElement;
+      if (trigger) trigger.click();
+    }
   }
 
   return (
@@ -202,7 +284,7 @@ export default function BoardPage() {
               <DialogHeader>
                 <DialogTitle>Create New Task</DialogTitle>
                 <p className="text-sm text-gray-600">Add a task to the board</p>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleCreateTask}>
                   <div className="space-y-2">
                     <Label>Title *</Label>
                     <Input
@@ -255,6 +337,24 @@ export default function BoardPage() {
               </DialogHeader>
             </DialogContent>
           </Dialog>
+        </div>
+
+        {/* BOARD COLUMNS */}
+        <div className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto lg:pb-6 lg:px-2 lg:-mx-2 lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-gray-100 lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full space-y-4 lg:space-y-0">
+          {columns.map((column, key) => (
+            <Column
+              key={key}
+              column={column}
+              onCreateTask={createTask}
+              onEditColumn={() => {}}
+            >
+              <div className="space-y-3">
+                {column.tasks.map((task, key) => (
+                  <div key={key}>{task.title}</div>
+                ))}
+              </div>
+            </Column>
+          ))}
         </div>
       </main>
     </div>
