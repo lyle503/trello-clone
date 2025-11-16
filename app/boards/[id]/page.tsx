@@ -3,6 +3,7 @@
 import Navbar from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBoard } from "@/lib/hooks/useBoards";
-import { BoardColumnWithTasks } from "@/lib/supabase/models";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { BoardColumnWithTasks, Task } from "@/lib/supabase/models";
+import { Calendar, MoreHorizontal, Plus, User } from "lucide-react";
 import { useParams } from "next/navigation";
 import { FormEvent, ReactNode, useState } from "react";
 
@@ -63,6 +64,65 @@ function Column({
         {/* COLUMN CONTENT */}
         <div className="p-2">{children}</div>
       </div>
+    </div>
+  );
+}
+
+type TaskWrapper = {
+  task: Task;
+};
+
+function TaskComponent({ task }: TaskWrapper) {
+  function getPriorityColour(priority: "low" | "medium" | "high") {
+    switch (priority) {
+      case "high":
+        return "bg-red-500";
+      case "medium":
+        return "bg-yellow-500";
+      default:
+        return "bg-green-500";
+    }
+  }
+
+  return (
+    <div>
+      <Card className="cursor-pointer hover:shadow-md transition-shadow">
+        <CardContent className="p-3 sm:p-4">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-start justify-between">
+              <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0 pr-2">
+                {task.title}
+              </h4>
+            </div>
+
+            <p className="text-xs text-gray-600 line-clamp-2">
+              {task.description || "No description"}
+            </p>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+                {task.assignee && (
+                  <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <User className="h-3 w-3" />
+                    <span className="truncate">{task.assignee}</span>
+                  </div>
+                )}
+                {task.due_date && (
+                  <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <Calendar className="h-3 w-3" />
+                    <span className="truncate">{task.due_date}</span>
+                  </div>
+                )}
+              </div>
+              <div
+                className={`w-2 h-2 rounded-full shrink-0 ${getPriorityColour(
+                  task.priority
+                )}`}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -350,7 +410,8 @@ export default function BoardPage() {
             >
               <div className="space-y-3">
                 {column.tasks.map((task, key) => (
-                  <div key={key}>{task.title}</div>
+                  <TaskComponent task={task} key={key} />
+                  //   <div key={key}>{task.title}</div>
                 ))}
               </div>
             </Column>
