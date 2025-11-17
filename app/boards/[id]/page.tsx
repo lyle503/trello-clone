@@ -30,7 +30,7 @@ import { FormEvent, ReactNode, useState } from "react";
 type ColumnWrapper = {
   column: BoardColumnWithTasks;
   children: ReactNode;
-  onCreateTask: (taskData: any) => Promise<void>; // Promise because it edits DB
+  onCreateTask: (e: any, sortOrder?: number) => Promise<void>; // Promise because it edits DB, any because it can be createTask or handleCreateTask
   onEditColumn: (column: BoardColumnWithTasks) => void;
 };
 
@@ -82,7 +82,10 @@ function Column({
               <DialogHeader>
                 <DialogTitle>Create New Task</DialogTitle>
                 <p className="text-sm text-gray-600">Add a task to the board</p>
-                <form className="space-y-4" onSubmit={onCreateTask}>
+                <form
+                  className="space-y-4"
+                  onSubmit={(e) => onCreateTask(e, column.sort_order)}
+                >
                   <div className="space-y-2">
                     <Label>Title *</Label>
                     <Input
@@ -231,14 +234,17 @@ export default function BoardPage() {
     );
   }
 
-  async function createTask(taskData: {
-    title: string;
-    description?: string;
-    assignee?: string;
-    dueDate?: string;
-    priority: "low" | "medium" | "high";
-  }) {
-    const targetColumn = columns[0]; // always adding to first column - needs changed for relevant add task button
+  async function createTask(
+    taskData: {
+      title: string;
+      description?: string;
+      assignee?: string;
+      dueDate?: string;
+      priority: "low" | "medium" | "high";
+    },
+    sortOrder: number = 0
+  ) {
+    const targetColumn = columns[sortOrder]; // always adding to first column - needs changed for relevant add task button
     if (!targetColumn) {
       throw new Error("No column available");
     }
@@ -246,7 +252,10 @@ export default function BoardPage() {
   }
 
   //   might need to use any for now
-  async function handleCreateTask(e: FormEvent<HTMLFormElement>) {
+  async function handleCreateTask(
+    e: FormEvent<HTMLFormElement>,
+    sortOrder?: number
+  ) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const taskData = {
@@ -259,7 +268,7 @@ export default function BoardPage() {
     };
 
     if (taskData.title.trim()) {
-      await createTask(taskData);
+      await createTask(taskData, sortOrder);
 
       // for closing the dialog after creating a task
       // i don't like this though, want a better solution
@@ -417,7 +426,10 @@ export default function BoardPage() {
               <DialogHeader>
                 <DialogTitle>Create New Task</DialogTitle>
                 <p className="text-sm text-gray-600">Add a task to the board</p>
-                <form className="space-y-4" onSubmit={handleCreateTask}>
+                <form
+                  className="space-y-4"
+                  onSubmit={(e) => handleCreateTask(e, 0)}
+                >
                   <div className="space-y-2">
                     <Label>Title *</Label>
                     <Input
