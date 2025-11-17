@@ -62,7 +62,80 @@ function Column({
         </div>
 
         {/* COLUMN CONTENT */}
-        <div className="p-2">{children}</div>
+        <div className="p-2">
+          {children}
+          {/* the following section is the same as the ADD TASK section */}
+          {/* please refactor to turn it into a reusable component */}
+          {/* i've labelled where things are different */}
+          <Dialog>
+            <DialogTrigger asChild>
+              {/* added variant ghost and changed class name */}
+              <Button
+                variant="ghost"
+                className="w-full mt-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+              >
+                <Plus />
+                Add Task
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Task</DialogTitle>
+                <p className="text-sm text-gray-600">Add a task to the board</p>
+                <form className="space-y-4" onSubmit={onCreateTask}>
+                  <div className="space-y-2">
+                    <Label>Title *</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      placeholder="Enter task title"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      placeholder="Enter description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Assignee</Label>
+                    <Input
+                      id="assignee"
+                      name="assignee"
+                      placeholder="Who should do this?"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Priority</Label>
+                    <Select name="priority" defaultValue="medium">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["low", "medium", "high"].map((priority, key) => (
+                          <SelectItem key={key} value={priority}>
+                            {priority.charAt(0).toUpperCase() +
+                              priority.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Due Date</Label>
+                    <Input id="dueDate" name="dueDate" type="date" />
+                  </div>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="submit">Create Task</Button>
+                  </div>
+                </form>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </div>
   );
@@ -165,7 +238,7 @@ export default function BoardPage() {
     dueDate?: string;
     priority: "low" | "medium" | "high";
   }) {
-    const targetColumn = columns[0]; // always adding to first column
+    const targetColumn = columns[0]; // always adding to first column - needs changed for relevant add task button
     if (!targetColumn) {
       throw new Error("No column available");
     }
@@ -326,7 +399,7 @@ export default function BoardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
           <div className="flex flex-wrap items-center gap-4 sm:gap-6">
             <div className="text-sm text-gray-600">
-              <span className="font-medium">Total Tasks:</span>
+              <span className="font-medium">Total Tasks: </span>
               {getTotalTasks()}
             </div>
           </div>
@@ -405,7 +478,7 @@ export default function BoardPage() {
             <Column
               key={key}
               column={column}
-              onCreateTask={createTask}
+              onCreateTask={handleCreateTask}
               onEditColumn={() => {}}
             >
               <div className="space-y-3">
