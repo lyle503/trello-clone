@@ -26,6 +26,21 @@ import { BoardColumnWithTasks, Task } from "@/lib/supabase/models";
 import { Calendar, MoreHorizontal, Plus, User } from "lucide-react";
 import { useParams } from "next/navigation";
 import { FormEvent, ReactNode, useState } from "react";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  rectIntersection,
+  useDroppable,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type ColumnWrapper = {
   column: BoardColumnWithTasks;
@@ -35,14 +50,21 @@ type ColumnWrapper = {
 };
 
 // extra component to make drag and drop logic easy
-function Column({
+function DroppableColumn({
   column,
   children,
   onCreateTask,
   onEditColumn,
 }: ColumnWrapper) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
   return (
-    <div className="w-full lg:shrink-0 lg:w-80">
+    <div
+      ref={setNodeRef}
+      className={`w-full lg:shrink-0 lg:w-80 ${
+        isOver ? "bg-blue-50 rounded-lg" : ""
+      }`}
+    >
       <div className="bg-white rounded-lg shadow-sm border">
         {/* Column Header */}
         <div className="p-3 sm:p-4 border-b">
@@ -148,7 +170,22 @@ type TaskWrapper = {
   task: Task;
 };
 
-function TaskComponent({ task }: TaskWrapper) {
+function SortableTask({ task }: TaskWrapper) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const styles = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   function getPriorityColour(priority: "low" | "medium" | "high") {
     switch (priority) {
       case "high":
@@ -161,7 +198,7 @@ function TaskComponent({ task }: TaskWrapper) {
   }
 
   return (
-    <div>
+    <div ref={setNodeRef} style={styles} {...listeners} {...attributes}>
       <Card className="cursor-pointer hover:shadow-md transition-shadow">
         <CardContent className="p-3 sm:p-4">
           <div className="space-y-2 sm:space-y-3">
@@ -203,17 +240,76 @@ function TaskComponent({ task }: TaskWrapper) {
   );
 }
 
+// when you're dragging the task, this is what displays
+// almost same as above, but without the draggable code
+// could probably avoid duplication
+function TaskOverlay({ task }: TaskWrapper) {
+  function getPriorityColour(priority: "low" | "medium" | "high") {
+    switch (priority) {
+      case "high":
+        return "bg-red-500";
+      case "medium":
+        return "bg-yellow-500";
+      default:
+        return "bg-green-500";
+    }
+  }
+
+  return (
+    <Card className="cursor-pointer hover:shadow-md transition-shadow">
+      <CardContent className="p-3 sm:p-4">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="flex items-start justify-between">
+            <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0 pr-2">
+              {task.title}
+            </h4>
+          </div>
+
+          <p className="text-xs text-gray-600 line-clamp-2">
+            {task.description || "No description"}
+          </p>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+              {task.assignee && (
+                <div className="flex items-center space-x-1 text-xs text-gray-500">
+                  <User className="h-3 w-3" />
+                  <span className="truncate">{task.assignee}</span>
+                </div>
+              )}
+              {task.due_date && (
+                <div className="flex items-center space-x-1 text-xs text-gray-500">
+                  <Calendar className="h-3 w-3" />
+                  <span className="truncate">{task.due_date}</span>
+                </div>
+              )}
+            </div>
+            <div
+              className={`w-2 h-2 rounded-full shrink-0 ${getPriorityColour(
+                task.priority
+              )}`}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // for some reason, the page is re-rendering a lot
 // e.g. when you click on a different window and click back on this one
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
-  const { board, updateBoard, columns, createRealTask } = useBoard(id);
+  const { board, updateBoard, columns, createRealTask, setColumns } =
+    useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newColour, setNewColour] = useState("");
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   async function handleUpdateBoard(e: FormEvent) {
     e.preventDefault();
@@ -278,6 +374,56 @@ export default function BoardPage() {
       if (trigger) trigger.click();
     }
   }
+
+  function handleDragStart(event: DragStartEvent) {
+    const taskId = event.active.id; // because we set event ID up to be the task ID
+    const task = columns
+      .flatMap((col) => col.tasks)
+      .find((task) => task.id === taskId);
+    if (task) {
+      setActiveTask(task);
+    }
+  }
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const sourceColumn = columns.find((col) =>
+      col.tasks.some((task) => (task.id = activeId))
+    );
+    const targetColumn = columns.find((col) =>
+      col.tasks.some((task) => (task.id = overId))
+    );
+
+    if (!sourceColumn || !targetColumn) return;
+
+    if (sourceColumn.id === targetColumn.id) {
+      const activeIndex = sourceColumn.tasks.findIndex(
+        (task) => task.id === activeId
+      );
+      const overIndex = sourceColumn.tasks.findIndex(
+        (task) => task.id === overId
+      );
+
+      if (activeIndex !== overIndex) {
+        setColumns((prev: BoardColumnWithTasks[]) => {
+          const newColumns = [...prev];
+          const column = newColumns.find((col) => col.id === sourceColumn.id);
+          if (column) {
+            const tasks = [...column.tasks];
+            const [removed] = tasks.splice(activeIndex, 1);
+            tasks.splice(overIndex, 0, removed);
+            column.tasks = tasks;
+          }
+          return newColumns;
+        });
+      }
+    }
+  }
+  function handleDragEnd(event: DragEndEvent) {}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -485,23 +631,40 @@ export default function BoardPage() {
         </div>
 
         {/* BOARD COLUMNS */}
-        <div className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto lg:pb-6 lg:px-2 lg:-mx-2 lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-gray-100 lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full space-y-4 lg:space-y-0">
-          {columns.map((column, key) => (
-            <Column
-              key={key}
-              column={column}
-              onCreateTask={handleCreateTask}
-              onEditColumn={() => {}}
-            >
-              <div className="space-y-3">
-                {column.tasks.map((task, key) => (
-                  <TaskComponent task={task} key={key} />
-                  //   <div key={key}>{task.title}</div>
-                ))}
-              </div>
-            </Column>
-          ))}
-        </div>
+        {/* DndContext required for every part of your project requiring DnD Functionality */}
+        <DndContext
+          //   sensors={}
+          collisionDetection={rectIntersection}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto lg:pb-6 lg:px-2 lg:-mx-2 lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-gray-100 lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full space-y-4 lg:space-y-0">
+            {columns.map((column, key) => (
+              <DroppableColumn
+                key={key}
+                column={column}
+                onCreateTask={handleCreateTask}
+                onEditColumn={() => {}}
+              >
+                <SortableContext
+                  items={column.tasks.map((task) => task.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {column.tasks.map((task, key) => (
+                      <SortableTask task={task} key={key} />
+                      //   <div key={key}>{task.title}</div>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DroppableColumn>
+            ))}
+            <DragOverlay>
+              {activeTask ? <TaskOverlay task={activeTask} /> : null}
+            </DragOverlay>
+          </div>
+        </DndContext>
       </main>
     </div>
   );
