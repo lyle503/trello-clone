@@ -68,6 +68,7 @@ export default function Navbar({
               </Link>
               <div className="h-4 sm:h-6 w-px bg-gray-300 hidden sm:block" />
               <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+                {/* would be nice if this was colour from DB */}
                 <Trello className="text-blue-600" />
                 <div className="items-center space-x-1 sm:space-x-2 min-w-0">
                   <span className="text-lg font-bold text-gray-900 truncate">
@@ -77,7 +78,7 @@ export default function Navbar({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 w-7 shrink-0 p-0"
+                      className="h-7 w-7 shrink-0 p-0 cursor-pointer"
                       onClick={onEditBoard}
                     >
                       <MoreHorizontal />

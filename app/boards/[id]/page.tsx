@@ -213,6 +213,7 @@ export default function BoardPage() {
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
   const [newColour, setNewColour] = useState("");
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -223,6 +224,7 @@ export default function BoardPage() {
     try {
       await updateBoard(board.id, {
         title: newTitle.trim(),
+        description: newDescription.trim(),
         colour: newColour || board.colour,
       });
       setIsEditingTitle(false);
@@ -287,6 +289,7 @@ export default function BoardPage() {
         boardTitle={board?.title}
         onEditBoard={() => {
           setNewTitle(board?.title ?? "");
+          setNewDescription(board?.description ?? "");
           setNewColour(board?.colour ?? "");
           setIsEditingTitle(true);
         }}
@@ -314,6 +317,17 @@ export default function BoardPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="boardDescription">Board Description</Label>
+              <Input
+                id="boardDescription"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Enter description..."
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label>Board Colour</Label>
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                 {[
@@ -332,7 +346,7 @@ export default function BoardPage() {
                 ].map((colour, key) => (
                   <button
                     key={key}
-                    className={`w-8 h-8 rounded-full ${colour} ${
+                    className={`w-8 h-8 cursor-pointer rounded-full ${colour} ${
                       colour === newColour
                         ? "ring-2 ring-offset-2 ring-gray-900"
                         : ""
@@ -349,10 +363,13 @@ export default function BoardPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsEditingTitle(false)}
+                className="cursor-pointer"
               >
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" className="cursor-pointer">
+                Save Changes
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -487,6 +504,11 @@ export default function BoardPage() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Description */}
+        {board?.description && (
+          <p className="mb-4 text-sm">{board?.description}</p>
+        )}
 
         {/* BOARD COLUMNS */}
         <div className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto lg:pb-6 lg:px-2 lg:-mx-2 lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-gray-100 lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full space-y-4 lg:space-y-0">
