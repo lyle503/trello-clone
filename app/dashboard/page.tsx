@@ -24,16 +24,49 @@ import {
   Trello,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function DashboardPage() {
   const { user } = useUser();
   const { createBoard, boards, loading, error } = useBoards();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const handleCreateBoard = async () => {
-    await createBoard({ title: "New Board" });
-  };
+  const [newColour, setNewColour] = useState("bg-blue-500");
+  const [addBoardError, setAddBoardError] = useState("");
+
+  async function handleCreateBoard(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const boardData = {
+      title: formData.get("title") as string,
+      description: (formData.get("description") as string) || undefined,
+      colour: (newColour as string) || "bg-blue-500",
+    };
+
+    if (boardData.title.trim()) {
+      await createBoard(boardData);
+
+      const trigger = document.querySelector(
+        '[data-state="open"'
+      ) as HTMLElement;
+      if (trigger) trigger.click();
+    } else {
+      setAddBoardError("Please enter a title");
+    }
+  }
+
+  // const handleCreateBoard = async () => {
+  //   await createBoard({ title: "New Board" });
+  // };
 
   // if (loading) {
   //   return (
@@ -58,7 +91,7 @@ export default function DashboardPage() {
       <Navbar />
 
       <main className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="mb-6 sm:mb-8">
+        <div className="mb-6 sm:mb-8 space-y-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Welcome back,{" "}
             {user?.firstName ?? user?.emailAddresses[0].emailAddress}! 👋
@@ -66,10 +99,78 @@ export default function DashboardPage() {
           <p className="text-gray-600">
             Here's what's happening with your boards today
           </p>
-          <Button className="w-full sm:w-auto" onClick={handleCreateBoard}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Board
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="w-full sm:w-auto cursor-pointer">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Board
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Board</DialogTitle>
+              </DialogHeader>
+              <form className="space-y-4" onSubmit={handleCreateBoard}>
+                {addBoardError && (
+                  <p className="text-red-400">{addBoardError}</p>
+                )}
+                <div className="space-y-2">
+                  <Label>Title *</Label>
+                  <Input
+                    id="title"
+                    name="title"
+                    placeholder="Enter task title"
+                    onChange={() => setAddBoardError("")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    placeholder="Enter description"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Board Colour</Label>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {[
+                      "bg-blue-500",
+                      "bg-green-500",
+                      "bg-yellow-500",
+                      "bg-red-500",
+                      "bg-purple-500",
+                      "bg-pink-500",
+                      "bg-indigo-500",
+                      "bg-gray-500",
+                      "bg-orange-500",
+                      "bg-teal-500",
+                      "bg-cyan-500",
+                      "bg-emerald-500",
+                    ].map((colour, key) => (
+                      <button
+                        key={key}
+                        className={`w-8 h-8 cursor-pointer rounded-full ${colour} ${
+                          colour === newColour
+                            ? "ring-2 ring-offset-2 ring-gray-900"
+                            : ""
+                        }`}
+                        onClick={() => setNewColour(colour)}
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="submit" className="cursor-pointer">
+                    Create Board
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* stats */}
@@ -163,12 +264,13 @@ export default function DashboardPage() {
             <p className="text-gray-600">Manage your projects and tasks</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 space-x-2">
             <div className="flex items-center space-x-2 bg-white border p-1">
               <Button
                 variant={viewMode === "grid" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
+                className="cursor-pointer"
               >
                 <Grid3x3 />
               </Button>
@@ -176,20 +278,89 @@ export default function DashboardPage() {
                 variant={viewMode === "list" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("list")}
+                className="cursor-pointer"
               >
                 <List />
               </Button>
             </div>
 
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="lg" className="cursor-pointer">
               <Filter />
               Filter
             </Button>
 
-            <Button onClick={handleCreateBoard}>
-              <Plus />
-              Create Board
-            </Button>
+            {/* FIND A WAY TO MAKE THIS A REUSABLE COMPONENT */}
+            {/* Biggest hurdle is the newColour state */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto cursor-pointer">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Board
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New Board</DialogTitle>
+                </DialogHeader>
+                <form className="space-y-4" onSubmit={handleCreateBoard}>
+                  {addBoardError && (
+                    <p className="text-red-400">{addBoardError}</p>
+                  )}
+                  <div className="space-y-2">
+                    <Label>Title *</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      placeholder="Enter task title"
+                      onChange={() => setAddBoardError("")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      placeholder="Enter description"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Board Colour</Label>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {[
+                        "bg-blue-500",
+                        "bg-green-500",
+                        "bg-yellow-500",
+                        "bg-red-500",
+                        "bg-purple-500",
+                        "bg-pink-500",
+                        "bg-indigo-500",
+                        "bg-gray-500",
+                        "bg-orange-500",
+                        "bg-teal-500",
+                        "bg-cyan-500",
+                        "bg-emerald-500",
+                      ].map((colour, key) => (
+                        <button
+                          key={key}
+                          className={`w-8 h-8 cursor-pointer rounded-full ${colour} ${
+                            colour === newColour
+                              ? "ring-2 ring-offset-2 ring-gray-900"
+                              : ""
+                          }`}
+                          onClick={() => setNewColour(colour)}
+                          type="button"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="submit">Create Task</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -220,7 +391,7 @@ export default function DashboardPage() {
                       {board.title}
                     </CardTitle>
                     <CardDescription className="text-sm mb-4">
-                      {board.description}
+                      {board.description || "No description"}
                     </CardDescription>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 space-y-1 sm:space-y-0">
                       <span>
