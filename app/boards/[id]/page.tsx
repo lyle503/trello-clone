@@ -417,7 +417,7 @@ export default function BoardPage() {
           {/* Using a Dialog Trigger as this sits on the page, not within Navbar (need to use asChild) */}
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="w-4 sm:w-auto">
+              <Button className="w-4 sm:w-auto cursor-pointer">
                 <Plus />
                 Add Task
               </Button>
