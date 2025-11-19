@@ -132,7 +132,9 @@ function Column({
                     <Input id="dueDate" name="dueDate" type="date" />
                   </div>
                   <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="submit">Create Task</Button>
+                    <Button type="submit" className="cursor-pointer">
+                      Create Task
+                    </Button>
                   </div>
                 </form>
               </DialogHeader>
@@ -476,7 +478,9 @@ export default function BoardPage() {
                     <Input id="dueDate" name="dueDate" type="date" />
                   </div>
                   <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="submit">Create Task</Button>
+                    <Button type="submit" className="cursor-pointer">
+                      Create Task
+                    </Button>
                   </div>
                 </form>
               </DialogHeader>

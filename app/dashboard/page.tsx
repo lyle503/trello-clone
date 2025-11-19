@@ -42,6 +42,7 @@ export default function DashboardPage() {
 
   const [newColour, setNewColour] = useState("bg-blue-500");
   const [addBoardError, setAddBoardError] = useState("");
+  const [creatingQuickBoard, setCreatingQuickBoard] = useState(false);
 
   async function handleCreateBoard(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -64,9 +65,12 @@ export default function DashboardPage() {
     }
   }
 
-  // const handleCreateBoard = async () => {
-  //   await createBoard({ title: "New Board" });
-  // };
+  async function handleCreateQuickBoard() {
+    if (creatingQuickBoard) return;
+    setCreatingQuickBoard(true);
+    await createBoard({ title: "New Board" });
+    setCreatingQuickBoard(false);
+  }
 
   // if (loading) {
   //   return (
@@ -408,12 +412,23 @@ export default function DashboardPage() {
               </Link>
             ))}
 
-            <Card className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer group">
+            <Card
+              onClick={handleCreateQuickBoard}
+              className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer group"
+            >
               <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center h-full min-h-[200px]">
-                <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 group-hover:text-blue-600 mb-2" />
-                <p className="text-sm sm:text-base text-gray-600 group-hover:text-blue-600 font-medium">
-                  Create new board
-                </p>
+                {!creatingQuickBoard ? (
+                  <div className="flex flex-col items-center justify-center">
+                    <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 group-hover:text-blue-600 mb-2" />
+                    <p className="text-sm sm:text-base text-gray-600 group-hover:text-blue-600 font-medium">
+                      Create quick board
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm sm:text-base text-gray-600 group-hover:text-blue-600 font-medium">
+                    Creating new board...
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -454,7 +469,10 @@ export default function DashboardPage() {
               </div>
             ))}
 
-            <Card className="mt-4 border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer group">
+            <Card
+              onClick={handleCreateQuickBoard}
+              className="mt-4 border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer group"
+            >
               <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center h-full min-h-[200px]">
                 <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 group-hover:text-blue-600 mb-2" />
                 <p className="text-sm sm:text-base text-gray-600 group-hover:text-blue-600 font-medium">
