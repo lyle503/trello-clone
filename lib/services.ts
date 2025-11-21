@@ -128,6 +128,23 @@ export const taskService = {
     return data;
   },
 
+  async updateTask(
+    supabase: SupabaseClient,
+    taskId: string,
+    updates: Partial<Task>
+  ) {
+    const { data, error } = await supabase
+      .from("tasks")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", taskId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  },
+
   async updateTaskColumn(
     supabase: SupabaseClient,
     taskId: string,

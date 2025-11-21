@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { boardDataService, boardService, taskService } from "../services";
 import { useEffect, useState } from "react";
-import { Board, BoardColumnWithTasks } from "../supabase/models";
+import { Board, BoardColumnWithTasks, Task } from "../supabase/models";
 import { useSupabase } from "../supabase/SupabaseProvider";
 
 export function useBoards() {
@@ -140,6 +140,30 @@ export function useBoard(boardId: string) {
     }
   }
 
+  async function updateTask(
+    taskId: string,
+    columnId: string,
+    updates: Partial<Task>
+  ) {
+    try {
+      const updatedTask = await taskService.updateTask(
+        supabase!,
+        taskId,
+        updates
+      );
+      setColumns((prev) =>
+        prev.map((column) =>
+          column.id === columnId
+            ? { ...column, tasks: [...column.tasks, updatedTask] }
+            : column
+        )
+      );
+      return updatedTask;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update task");
+    }
+  }
+
   async function updateTaskColumn(
     taskId: string,
     columnId: string,
@@ -180,6 +204,7 @@ export function useBoard(boardId: string) {
     error,
     updateBoard,
     createRealTask,
+    updateTask,
     updateTaskColumn,
   };
 }
