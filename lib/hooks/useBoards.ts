@@ -140,5 +140,46 @@ export function useBoard(boardId: string) {
     }
   }
 
-  return { board, columns, loading, error, updateBoard, createRealTask };
+  async function updateTaskColumn(
+    taskId: string,
+    columnId: string,
+    previousColumnId: string
+  ) {
+    try {
+      const movedTask = await taskService.updateTaskColumn(
+        supabase!,
+        taskId,
+        columnId
+      );
+      setColumns((prev) =>
+        prev.map((column) =>
+          column.id === columnId
+            ? { ...column, tasks: [...column.tasks, movedTask] }
+            : column.id === previousColumnId
+            ? {
+                ...column,
+                tasks: [
+                  ...column.tasks.filter((task) => {
+                    if (task.id !== taskId) return task;
+                  }),
+                ],
+              }
+            : column
+        )
+      );
+      return movedTask;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to move task");
+    }
+  }
+
+  return {
+    board,
+    columns,
+    loading,
+    error,
+    updateBoard,
+    createRealTask,
+    updateTaskColumn,
+  };
 }

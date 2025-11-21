@@ -23,7 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useBoard } from "@/lib/hooks/useBoards";
 import { BoardColumnWithTasks, Task } from "@/lib/supabase/models";
-import { Calendar, MoreHorizontal, Plus, User } from "lucide-react";
+import { Calendar, Loader2, MoreHorizontal, Plus, User } from "lucide-react";
 import { useParams } from "next/navigation";
 import { FormEvent, ReactNode, useState } from "react";
 
@@ -148,9 +148,23 @@ function Column({
 
 type TaskWrapper = {
   task: Task;
+  column: BoardColumnWithTasks;
+  columns: BoardColumnWithTasks[];
+  updateTaskColumn: (
+    taskId: string,
+    columnId: string,
+    previousColumnId: string
+  ) => Promise<Task | undefined>;
 };
 
-function TaskComponent({ task }: TaskWrapper) {
+function TaskComponent({
+  task,
+  column,
+  columns,
+  updateTaskColumn,
+}: TaskWrapper) {
+  const [movingTask, setMovingTask] = useState(false);
+
   function getPriorityColour(priority: "low" | "medium" | "high") {
     switch (priority) {
       case "high":
@@ -160,6 +174,12 @@ function TaskComponent({ task }: TaskWrapper) {
       default:
         return "bg-green-500";
     }
+  }
+
+  async function moveTask(taskToMove: Task, newColumn: BoardColumnWithTasks) {
+    setMovingTask(true);
+    await updateTaskColumn(taskToMove.id, newColumn.id, column.id);
+    setMovingTask(false);
   }
 
   return (
@@ -198,6 +218,31 @@ function TaskComponent({ task }: TaskWrapper) {
                 )}`}
               />
             </div>
+
+            {/* BUTTONS TO MOVE TASKS */}
+            {!movingTask ? (
+              <div className="flex flex-col space-y-2">
+                {columns
+                  .filter((otherColumn) => {
+                    if (column.sort_order !== otherColumn.sort_order) {
+                      return otherColumn;
+                    }
+                  })
+                  .map((otherColumn, key) => (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="cursor-pointer"
+                      key={key}
+                      onClick={() => moveTask(task, otherColumn)}
+                    >
+                      {otherColumn.title}
+                    </Button>
+                  ))}
+              </div>
+            ) : (
+              <Loader2 />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -209,7 +254,8 @@ function TaskComponent({ task }: TaskWrapper) {
 // e.g. when you click on a different window and click back on this one
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
-  const { board, updateBoard, columns, createRealTask } = useBoard(id);
+  const { board, updateBoard, columns, createRealTask, updateTaskColumn } =
+    useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -521,7 +567,13 @@ export default function BoardPage() {
             >
               <div className="space-y-3">
                 {column.tasks.map((task, key) => (
-                  <TaskComponent task={task} key={key} />
+                  <TaskComponent
+                    task={task}
+                    column={column}
+                    columns={columns}
+                    updateTaskColumn={updateTaskColumn}
+                    key={key}
+                  />
                   //   <div key={key}>{task.title}</div>
                 ))}
               </div>
