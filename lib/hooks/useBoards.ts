@@ -154,7 +154,12 @@ export function useBoard(boardId: string) {
       setColumns((prev) =>
         prev.map((column) =>
           column.id === columnId
-            ? { ...column, tasks: [...column.tasks, updatedTask] }
+            ? {
+                ...column,
+                tasks: column.tasks.map((task) =>
+                  task.id === taskId ? updatedTask : task
+                ),
+              }
             : column
         )
       );

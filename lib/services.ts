@@ -133,9 +133,10 @@ export const taskService = {
     taskId: string,
     updates: Partial<Task>
   ) {
+    // consider adding updated_at to task table, .update({ ...updates, updated_at: new Date().toISOString() })
     const { data, error } = await supabase
       .from("tasks")
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...updates })
       .eq("id", taskId)
       .select()
       .single();

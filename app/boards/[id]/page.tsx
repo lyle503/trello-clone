@@ -23,7 +23,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useBoard } from "@/lib/hooks/useBoards";
 import { BoardColumnWithTasks, Task } from "@/lib/supabase/models";
-import { Calendar, Loader2, MoreHorizontal, Plus, User } from "lucide-react";
+import {
+  Calendar,
+  Edit,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  User,
+} from "lucide-react";
 import { useParams } from "next/navigation";
 import { FormEvent, ReactNode, useState } from "react";
 
@@ -155,6 +162,11 @@ type TaskWrapper = {
     columnId: string,
     previousColumnId: string
   ) => Promise<Task | undefined>;
+  updateTask: (
+    taskId: string,
+    columnId: string,
+    updates: Partial<Task>
+  ) => Promise<Task | undefined>;
 };
 
 function TaskComponent({
@@ -162,8 +174,17 @@ function TaskComponent({
   column,
   columns,
   updateTaskColumn,
+  updateTask,
 }: TaskWrapper) {
   const [movingTask, setMovingTask] = useState(false);
+
+  const [newTitle, setNewTitle] = useState(task.title);
+  const [newDescription, setNewDescription] = useState(task.description || "");
+  const [newAssignee, setNewAssignee] = useState(task.assignee || "");
+  const [newDueDate, setNewDueDate] = useState(task.due_date || "");
+  const [newPriority, setNewPriority] = useState<
+    string | "low" | "medium" | "high"
+  >(task.priority);
 
   function getPriorityColour(priority: "low" | "medium" | "high") {
     switch (priority) {
@@ -182,70 +203,185 @@ function TaskComponent({
     setMovingTask(false);
   }
 
+  function resetEditTaskDiaglog() {
+    setNewTitle(task.title);
+    setNewDescription(task.description || "");
+    setNewAssignee(task.assignee || "");
+    setNewDueDate(task.due_date || "");
+    setNewPriority(task.priority);
+  }
+
+  async function handleUpdateTask(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const taskData = {
+      title: formData.get("title") as string,
+      description: (formData.get("description") as string) || undefined,
+      assignee: (formData.get("assignee") as string) || undefined,
+      due_date: (formData.get("dueDate") as string) || undefined,
+      priority: formData.get("priority") as "low" | "medium" | "high",
+    };
+
+    if (taskData.title.trim()) {
+      await updateTask(task.id, column.id, taskData);
+
+      // for closing the dialog after creating a task
+      // i don't like this though, want a better solution
+      const trigger = document.querySelector(
+        '[data-state="open"'
+      ) as HTMLElement;
+      if (trigger) trigger.click();
+    }
+  }
+
   return (
     <div>
-      <Card className="cursor-pointer hover:shadow-md transition-shadow">
-        <CardContent className="p-3 sm:p-4">
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-start justify-between">
-              <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0 pr-2">
-                {task.title}
-              </h4>
-            </div>
-
-            <p className="text-xs text-gray-600 line-clamp-2">
-              {task.description || "No description"}
-            </p>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
-                {task.assignee && (
-                  <div className="flex items-center space-x-1 text-xs text-gray-500">
-                    <User className="h-3 w-3" />
-                    <span className="truncate">{task.assignee}</span>
-                  </div>
-                )}
-                {task.due_date && (
-                  <div className="flex items-center space-x-1 text-xs text-gray-500">
-                    <Calendar className="h-3 w-3" />
-                    <span className="truncate">{task.due_date}</span>
-                  </div>
-                )}
+      <Dialog>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <CardContent className="p-3 sm:p-4">
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start justify-between">
+                <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0 pr-2">
+                  {task.title}
+                </h4>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={resetEditTaskDiaglog}
+                  >
+                    <Edit />
+                  </Button>
+                </DialogTrigger>
               </div>
-              <div
-                className={`w-2 h-2 rounded-full shrink-0 ${getPriorityColour(
-                  task.priority
-                )}`}
+
+              <p className="text-xs text-gray-600 line-clamp-2">
+                {task.description || "No description"}
+              </p>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+                  {task.assignee && (
+                    <div className="flex items-center space-x-1 text-xs text-gray-500">
+                      <User className="h-3 w-3" />
+                      <span className="truncate">{task.assignee}</span>
+                    </div>
+                  )}
+                  {task.due_date && (
+                    <div className="flex items-center space-x-1 text-xs text-gray-500">
+                      <Calendar className="h-3 w-3" />
+                      <span className="truncate">{task.due_date}</span>
+                    </div>
+                  )}
+                </div>
+                <div
+                  className={`w-2 h-2 rounded-full shrink-0 ${getPriorityColour(
+                    task.priority
+                  )}`}
+                />
+              </div>
+
+              {/* BUTTONS TO MOVE TASKS */}
+              {!movingTask ? (
+                <div className="flex flex-col space-y-2">
+                  {columns
+                    .filter((otherColumn) => {
+                      if (column.sort_order !== otherColumn.sort_order) {
+                        return otherColumn;
+                      }
+                    })
+                    .map((otherColumn, key) => (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="cursor-pointer"
+                        key={key}
+                        onClick={() => moveTask(task, otherColumn)}
+                      >
+                        {otherColumn.title}
+                      </Button>
+                    ))}
+                </div>
+              ) : (
+                <Loader2 />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={handleUpdateTask}>
+            <div className="space-y-2">
+              <Label>Title *</Label>
+              <Input
+                id="title"
+                name="title"
+                placeholder="Enter task title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
               />
             </div>
-
-            {/* BUTTONS TO MOVE TASKS */}
-            {!movingTask ? (
-              <div className="flex flex-col space-y-2">
-                {columns
-                  .filter((otherColumn) => {
-                    if (column.sort_order !== otherColumn.sort_order) {
-                      return otherColumn;
-                    }
-                  })
-                  .map((otherColumn, key) => (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="cursor-pointer"
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                placeholder="Enter task description"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Assignee</Label>
+              <Input
+                id="assignee"
+                name="assignee"
+                placeholder="Who should do this?"
+                value={newAssignee}
+                onChange={(e) => setNewAssignee(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Priority</Label>
+              <Select name="priority" defaultValue={newPriority}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["low", "medium", "high"].map((priority, key) => (
+                    <SelectItem
                       key={key}
-                      onClick={() => moveTask(task, otherColumn)}
+                      value={priority}
+                      onClick={() => setNewPriority(priority)}
                     >
-                      {otherColumn.title}
-                    </Button>
+                      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                    </SelectItem>
                   ))}
-              </div>
-            ) : (
-              <Loader2 />
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Input
+                id="dueDate"
+                name="dueDate"
+                type="date"
+                value={newDueDate}
+                onChange={(e) => setNewDueDate(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="submit" className="cursor-pointer">
+                Update Task
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -254,8 +390,14 @@ function TaskComponent({
 // e.g. when you click on a different window and click back on this one
 export default function BoardPage() {
   const { id } = useParams<{ id: string }>();
-  const { board, updateBoard, columns, createRealTask, updateTaskColumn } =
-    useBoard(id);
+  const {
+    board,
+    updateBoard,
+    columns,
+    createRealTask,
+    updateTaskColumn,
+    updateTask,
+  } = useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -572,6 +714,7 @@ export default function BoardPage() {
                     column={column}
                     columns={columns}
                     updateTaskColumn={updateTaskColumn}
+                    updateTask={updateTask}
                     key={key}
                   />
                   //   <div key={key}>{task.title}</div>
