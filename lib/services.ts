@@ -75,6 +75,23 @@ export const columnService = {
     return data || [];
   },
 
+  async getMaxColumnSortOrder(
+    supabase: SupabaseClient,
+    boardId: string
+  ): Promise<number> {
+    const { data, error } = await supabase
+      .from("board_columns")
+      .select("sort_order")
+      .eq("board_id", boardId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+
+    return data?.sort_order ?? 0;
+  },
+
   async createColumn(
     supabase: SupabaseClient,
     column: Omit<BoardColumn, "id" | "created_at">
@@ -82,6 +99,45 @@ export const columnService = {
     const { data, error } = await supabase
       .from("board_columns")
       .insert(column)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  },
+
+  async createColumnWithAutomatedSortOrder(
+    supabase: SupabaseClient,
+    column: Omit<BoardColumn, "id" | "created_at" | "sort_order">
+  ): Promise<BoardColumn> {
+    const maxSortOrder = await this.getMaxColumnSortOrder(
+      supabase,
+      column.board_id
+    );
+    const columnToAdd = { ...column, sort_order: maxSortOrder + 1 };
+
+    const { data, error } = await supabase
+      .from("board_columns")
+      .insert(columnToAdd)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  },
+
+  async updateColumn(
+    supabase: SupabaseClient,
+    columnId: string,
+    updates: Partial<BoardColumn>
+  ) {
+    // consider adding updated_at to board_columns table, .update({ ...updates, updated_at: new Date().toISOString() })
+    const { data, error } = await supabase
+      .from("board_columns")
+      .update({ ...updates })
+      .eq("id", columnId)
       .select()
       .single();
 
