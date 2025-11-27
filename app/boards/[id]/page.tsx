@@ -23,17 +23,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useBoard } from "@/lib/hooks/useBoards";
 import { BoardColumnWithTasks, Task } from "@/lib/supabase/models";
+import { SelectIcon } from "@radix-ui/react-select";
 import {
   Calendar,
   Edit,
-  Loader2,
   MoreHorizontal,
   Plus,
   Trash,
   User,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { FormEvent, ReactNode, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
 
 type ColumnWrapper = {
   column: BoardColumnWithTasks;
@@ -107,13 +107,44 @@ function Column({
                   </form>
                 </DialogContent>
               </Dialog>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="shrink-0 cursor-pointer"
-              >
-                <Trash />
-              </Button>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 cursor-pointer"
+                  >
+                    <Trash />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-center">
+                      Are you sure you want to delete this column?
+                    </DialogTitle>
+                    <p className="text-center">
+                      This will delete ALL tasks currently in the column
+                    </p>
+                  </DialogHeader>
+                  <div className="flex justify-center space-x-2 pt-4">
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      className="cursor-pointer"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="destructive"
+                      className="cursor-pointer"
+                    >
+                      Delete Column
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -227,6 +258,7 @@ function TaskComponent({
   updateTask,
 }: TaskWrapper) {
   const [movingTask, setMovingTask] = useState(false);
+  const [columnValue, setColumnValue] = useState("");
 
   const [newTitle, setNewTitle] = useState(task.title);
   const [newDescription, setNewDescription] = useState(task.description || "");
@@ -235,6 +267,17 @@ function TaskComponent({
   const [newPriority, setNewPriority] = useState<
     string | "low" | "medium" | "high"
   >(task.priority);
+
+  useEffect(() => {
+    if (columnValue !== "") {
+      const otherColumn = columns.find((otherColumn) => {
+        if (otherColumn.id === columnValue) {
+          return otherColumn;
+        }
+      });
+      moveTask(task, otherColumn);
+    }
+  }, [columnValue]);
 
   function getPriorityColour(priority: "low" | "medium" | "high") {
     switch (priority) {
@@ -247,10 +290,15 @@ function TaskComponent({
     }
   }
 
-  async function moveTask(taskToMove: Task, newColumn: BoardColumnWithTasks) {
-    setMovingTask(true);
-    await updateTaskColumn(taskToMove.id, newColumn.id, column.id);
-    setMovingTask(false);
+  async function moveTask(
+    taskToMove: Task,
+    newColumn: BoardColumnWithTasks | undefined
+  ) {
+    if (newColumn) {
+      setMovingTask(true);
+      await updateTaskColumn(taskToMove.id, newColumn.id, column.id);
+      setMovingTask(false);
+    }
   }
 
   function resetEditTaskDialog() {
@@ -287,16 +335,46 @@ function TaskComponent({
   return (
     <div>
       <Dialog>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+        <Card
+          className={`cursor-pointer hover:shadow-md transition-shadow ${
+            movingTask ? "opacity-25" : ""
+          }`}
+        >
           <CardContent className="p-3 sm:p-4">
             <div className="space-y-2 sm:space-y-3">
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0 pr-2">
                   {task.title}
                 </h4>
-                <Button variant="ghost" size="sm" className="cursor-pointer">
-                  <MoreHorizontal />
-                </Button>
+                <Select
+                  value={columnValue}
+                  name="task"
+                  onValueChange={setColumnValue}
+                >
+                  <SelectTrigger className="cursor-pointer border-none shadow-none hover:bg-gray-100">
+                    <SelectIcon asChild>
+                      <MoreHorizontal />
+                    </SelectIcon>
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {columns
+                      .filter((otherColumn) => {
+                        if (column.sort_order !== otherColumn.sort_order) {
+                          return otherColumn;
+                        }
+                      })
+                      .map((otherColumn, key) => (
+                        <SelectItem
+                          className="cursor-pointer"
+                          value={otherColumn.id}
+                          key={key}
+                        >
+                          {otherColumn.title}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
                 <DialogTrigger asChild>
                   <Button
                     variant="ghost"
@@ -334,31 +412,6 @@ function TaskComponent({
                   )}`}
                 />
               </div>
-
-              {/* BUTTONS TO MOVE TASKS */}
-              {!movingTask ? (
-                <div className="flex flex-col space-y-2">
-                  {columns
-                    .filter((otherColumn) => {
-                      if (column.sort_order !== otherColumn.sort_order) {
-                        return otherColumn;
-                      }
-                    })
-                    .map((otherColumn, key) => (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="cursor-pointer"
-                        key={key}
-                        onClick={() => moveTask(task, otherColumn)}
-                      >
-                        {otherColumn.title}
-                      </Button>
-                    ))}
-                </div>
-              ) : (
-                <Loader2 />
-              )}
             </div>
           </CardContent>
         </Card>
