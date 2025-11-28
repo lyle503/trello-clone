@@ -158,6 +158,19 @@ export function useBoard(boardId: string) {
     }
   }
 
+  async function deleteColumn(columnId: string) {
+    try {
+      const deletedColumn = await columnService.deleteColumn(
+        supabase!,
+        columnId
+      );
+      setColumns((prev) => prev.filter((column) => column.id !== columnId));
+      return deletedColumn;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete column");
+    }
+  }
+
   async function createRealTask(
     columnId: string,
     taskData: {
@@ -269,7 +282,7 @@ export function useBoard(boardId: string) {
       );
       return deletedTask;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create task");
+      setError(err instanceof Error ? err.message : "Failed to delete task");
     }
   }
 
@@ -284,6 +297,7 @@ export function useBoard(boardId: string) {
     updateTask,
     updateTaskColumn,
     updateColumn,
+    deleteColumn,
     deleteTask,
   };
 }

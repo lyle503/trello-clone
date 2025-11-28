@@ -1,4 +1,9 @@
-import { Board, BoardColumn, Task } from "./supabase/models";
+import {
+  Board,
+  BoardColumn,
+  BoardColumnWithTasks,
+  Task,
+} from "./supabase/models";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export const boardService = {
@@ -145,6 +150,27 @@ export const columnService = {
 
     return data;
   },
+
+  async deleteColumn(
+    supabase: SupabaseClient,
+    columnId: string
+  ): Promise<BoardColumn> {
+    const deletedTasks = await taskService.deleteTasksByColumn(
+      supabase,
+      columnId
+    );
+
+    const { data, error } = await supabase
+      .from("board_columns")
+      .delete()
+      .eq("id", columnId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  },
 };
 
 export const taskService = {
@@ -230,6 +256,21 @@ export const taskService = {
     if (error) throw error;
 
     return data;
+  },
+
+  async deleteTasksByColumn(
+    supabase: SupabaseClient,
+    columnId: string
+  ): Promise<Task[]> {
+    const { data, error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("column_id", columnId)
+      .select();
+
+    if (error) throw error;
+
+    return data ?? [];
   },
 };
 

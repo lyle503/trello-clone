@@ -27,6 +27,7 @@ import { SelectIcon } from "@radix-ui/react-select";
 import {
   Calendar,
   ClipboardList,
+  Columns,
   Edit,
   MoreHorizontal,
   Plus,
@@ -41,6 +42,7 @@ type ColumnWrapper = {
   children: ReactNode;
   onCreateTask: (e: any, sortOrder?: number) => Promise<void>; // Promise because it edits DB, any because it can be createTask or handleCreateTask
   onEditColumn: (e: any, column: BoardColumnWithTasks) => void;
+  onDeleteColumn: (column: BoardColumnWithTasks) => Promise<void>;
 };
 
 // extra component to make drag and drop logic easy (update: probably removing)
@@ -49,6 +51,7 @@ function Column({
   children,
   onCreateTask,
   onEditColumn,
+  onDeleteColumn,
 }: ColumnWrapper) {
   const [newTitle, setNewTitle] = useState(column.title);
 
@@ -124,6 +127,10 @@ function Column({
                     <DialogTitle className="text-center">
                       Are you sure you want to delete this column?
                     </DialogTitle>
+                    <p className="flex justify-center gap-4 my-5 bg-gray-50 rounded-sm py-2">
+                      <Columns />
+                      <span className="font-bold">{column.title}</span>
+                    </p>
                     <p className="text-center">
                       This will delete ALL tasks currently in the column
                     </p>
@@ -140,6 +147,7 @@ function Column({
                       type="submit"
                       variant="destructive"
                       className="cursor-pointer"
+                      onClick={() => onDeleteColumn(column)}
                     >
                       Delete Column
                     </Button>
@@ -560,6 +568,7 @@ export default function BoardPage() {
     updateTaskColumn,
     updateTask,
     updateColumn,
+    deleteColumn,
     deleteTask,
   } = useBoard(id);
 
@@ -676,6 +685,15 @@ export default function BoardPage() {
       ) as HTMLElement;
       if (trigger) trigger.click();
     }
+  }
+
+  async function handleDeleteColumn(column: BoardColumnWithTasks) {
+    await deleteColumn(column.id);
+
+    // for closing the dialog after creating a task
+    // i don't like this though, want a better solution
+    const trigger = document.querySelector('[data-state="open"') as HTMLElement;
+    if (trigger) trigger.click();
   }
 
   return (
@@ -955,6 +973,7 @@ export default function BoardPage() {
               column={column}
               onCreateTask={handleCreateTask}
               onEditColumn={handleUpdateColumn}
+              onDeleteColumn={handleDeleteColumn}
             >
               <div className="space-y-3">
                 {column.tasks.map((task, key) => (
