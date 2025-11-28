@@ -254,6 +254,25 @@ export function useBoard(boardId: string) {
     }
   }
 
+  async function deleteTask(columnId: string, taskId: string) {
+    try {
+      const deletedTask = await taskService.deleteTask(supabase!, taskId);
+      setColumns((prev) =>
+        prev.map((column) =>
+          column.id === columnId
+            ? {
+                ...column,
+                tasks: column.tasks.filter((task) => taskId !== task.id),
+              }
+            : column
+        )
+      );
+      return deletedTask;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create task");
+    }
+  }
+
   return {
     board,
     columns,
@@ -265,5 +284,6 @@ export function useBoard(boardId: string) {
     updateTask,
     updateTaskColumn,
     updateColumn,
+    deleteTask,
   };
 }

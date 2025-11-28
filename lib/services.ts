@@ -218,6 +218,19 @@ export const taskService = {
 
     return data;
   },
+
+  async deleteTask(supabase: SupabaseClient, taskId: string): Promise<Task> {
+    const { data, error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", taskId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  },
 };
 
 export const boardDataService = {

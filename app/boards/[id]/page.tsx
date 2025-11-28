@@ -26,6 +26,7 @@ import { BoardColumnWithTasks, Task } from "@/lib/supabase/models";
 import { SelectIcon } from "@radix-ui/react-select";
 import {
   Calendar,
+  ClipboardList,
   Edit,
   MoreHorizontal,
   Plus,
@@ -248,6 +249,7 @@ type TaskWrapper = {
     columnId: string,
     updates: Partial<Task>
   ) => Promise<Task | undefined>;
+  deleteTask: (columnId: string, taskId: string) => Promise<Task | undefined>;
 };
 
 function TaskComponent({
@@ -256,6 +258,7 @@ function TaskComponent({
   columns,
   updateTaskColumn,
   updateTask,
+  deleteTask,
 }: TaskWrapper) {
   const [movingTask, setMovingTask] = useState(false);
   const [columnValue, setColumnValue] = useState("");
@@ -332,49 +335,59 @@ function TaskComponent({
     }
   }
 
+  async function handleDeleteTask() {
+    await deleteTask(column.id, task.id);
+
+    // for closing the dialog after creating a task
+    // i don't like this though, want a better solution
+    const trigger = document.querySelector('[data-state="open"') as HTMLElement;
+    if (trigger) trigger.click();
+  }
+
   return (
     <div>
-      <Dialog>
-        <Card
-          className={`cursor-pointer hover:shadow-md transition-shadow ${
-            movingTask ? "opacity-25" : ""
-          }`}
-        >
-          <CardContent className="p-3 sm:p-4">
-            <div className="space-y-2 sm:space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0 pr-2">
-                  {task.title}
-                </h4>
-                <Select
-                  value={columnValue}
-                  name="task"
-                  onValueChange={setColumnValue}
-                >
-                  <SelectTrigger className="cursor-pointer border-none shadow-none hover:bg-gray-100">
-                    <SelectIcon asChild>
-                      <MoreHorizontal />
-                    </SelectIcon>
-                  </SelectTrigger>
+      <Card
+        className={`cursor-pointer hover:shadow-md transition-shadow ${
+          movingTask ? "opacity-25" : ""
+        }`}
+      >
+        <CardContent className="p-3 sm:p-4">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0 pr-2">
+                {task.title}
+              </h4>
 
-                  <SelectContent>
-                    {columns
-                      .filter((otherColumn) => {
-                        if (column.sort_order !== otherColumn.sort_order) {
-                          return otherColumn;
-                        }
-                      })
-                      .map((otherColumn, key) => (
-                        <SelectItem
-                          className="cursor-pointer"
-                          value={otherColumn.id}
-                          key={key}
-                        >
-                          {otherColumn.title}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+              <Select
+                value={columnValue}
+                name="task"
+                onValueChange={setColumnValue}
+              >
+                <SelectTrigger className="cursor-pointer border-none shadow-none hover:bg-gray-100">
+                  <SelectIcon asChild>
+                    <MoreHorizontal />
+                  </SelectIcon>
+                </SelectTrigger>
+
+                <SelectContent>
+                  {columns
+                    .filter((otherColumn) => {
+                      if (column.sort_order !== otherColumn.sort_order) {
+                        return otherColumn;
+                      }
+                    })
+                    .map((otherColumn, key) => (
+                      <SelectItem
+                        className="cursor-pointer"
+                        value={otherColumn.id}
+                        key={key}
+                      >
+                        {otherColumn.title}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Dialog>
                 <DialogTrigger asChild>
                   <Button
                     variant="ghost"
@@ -385,109 +398,151 @@ function TaskComponent({
                     <Edit />
                   </Button>
                 </DialogTrigger>
-              </div>
-
-              <p className="text-xs text-gray-600 line-clamp-2">
-                {task.description || "No description"}
-              </p>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
-                  {task.assignee && (
-                    <div className="flex items-center space-x-1 text-xs text-gray-500">
-                      <User className="h-3 w-3" />
-                      <span className="truncate">{task.assignee}</span>
+                <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+                  <DialogHeader>
+                    <DialogTitle>Edit Task</DialogTitle>
+                  </DialogHeader>
+                  <form className="space-y-4" onSubmit={handleUpdateTask}>
+                    <div className="space-y-2">
+                      <Label>Title *</Label>
+                      <Input
+                        id="title"
+                        name="title"
+                        placeholder="Enter task title"
+                        value={newTitle}
+                        onChange={(e) => setNewTitle(e.target.value)}
+                      />
                     </div>
-                  )}
-                  {task.due_date && (
-                    <div className="flex items-center space-x-1 text-xs text-gray-500">
-                      <Calendar className="h-3 w-3" />
-                      <span className="truncate">{task.due_date}</span>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea
+                        id="description"
+                        name="description"
+                        placeholder="Enter task description"
+                        value={newDescription}
+                        onChange={(e) => setNewDescription(e.target.value)}
+                      />
                     </div>
-                  )}
-                </div>
-                <div
-                  className={`w-2 h-2 rounded-full shrink-0 ${getPriorityColour(
-                    task.priority
-                  )}`}
-                />
-              </div>
+                    <div className="space-y-2">
+                      <Label>Assignee</Label>
+                      <Input
+                        id="assignee"
+                        name="assignee"
+                        placeholder="Who should do this?"
+                        value={newAssignee}
+                        onChange={(e) => setNewAssignee(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Priority</Label>
+                      <Select name="priority" defaultValue={newPriority}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["low", "medium", "high"].map((priority, key) => (
+                            <SelectItem
+                              key={key}
+                              value={priority}
+                              onClick={() => setNewPriority(priority)}
+                            >
+                              {priority.charAt(0).toUpperCase() +
+                                priority.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Due Date</Label>
+                      <Input
+                        id="dueDate"
+                        name="dueDate"
+                        type="date"
+                        value={newDueDate}
+                        onChange={(e) => setNewDueDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button type="submit" className="cursor-pointer">
+                        Update Task
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
-          </CardContent>
-        </Card>
 
-        <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
-          </DialogHeader>
-          <form className="space-y-4" onSubmit={handleUpdateTask}>
-            <div className="space-y-2">
-              <Label>Title *</Label>
-              <Input
-                id="title"
-                name="title"
-                placeholder="Enter task title"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
+            <p className="text-xs text-gray-600 line-clamp-2">
+              {task.description || "No description"}
+            </p>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+                {task.assignee && (
+                  <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <User className="h-3 w-3" />
+                    <span className="truncate">{task.assignee}</span>
+                  </div>
+                )}
+                {task.due_date && (
+                  <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <Calendar className="h-3 w-3" />
+                    <span className="truncate">{task.due_date}</span>
+                  </div>
+                )}
+              </div>
+              <div
+                className={`w-2 h-2 rounded-full shrink-0 ${getPriorityColour(
+                  task.priority
+                )}`}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                placeholder="Enter task description"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Assignee</Label>
-              <Input
-                id="assignee"
-                name="assignee"
-                placeholder="Who should do this?"
-                value={newAssignee}
-                onChange={(e) => setNewAssignee(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select name="priority" defaultValue={newPriority}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {["low", "medium", "high"].map((priority, key) => (
-                    <SelectItem
-                      key={key}
-                      value={priority}
-                      onClick={() => setNewPriority(priority)}
+
+            <div className="flex justify-end">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={resetEditTaskDialog}
+                  >
+                    <Trash />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-center">
+                      Are you sure you want to delete this task?
+                    </DialogTitle>
+                    <p className="flex justify-center gap-4 mt-5 bg-gray-50 rounded-sm py-2">
+                      <ClipboardList /> <span>{task.title}</span>
+                    </p>
+                  </DialogHeader>
+                  <div className="flex justify-center space-x-2 pt-4">
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      className="cursor-pointer"
                     >
-                      {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="destructive"
+                      className="cursor-pointer"
+                      onClick={handleDeleteTask}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
-            <div className="space-y-2">
-              <Label>Due Date</Label>
-              <Input
-                id="dueDate"
-                name="dueDate"
-                type="date"
-                value={newDueDate}
-                onChange={(e) => setNewDueDate(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="submit" className="cursor-pointer">
-                Update Task
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -505,6 +560,7 @@ export default function BoardPage() {
     updateTaskColumn,
     updateTask,
     updateColumn,
+    deleteTask,
   } = useBoard(id);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -908,6 +964,7 @@ export default function BoardPage() {
                     columns={columns}
                     updateTaskColumn={updateTaskColumn}
                     updateTask={updateTask}
+                    deleteTask={deleteTask}
                     key={key}
                   />
                   //   <div key={key}>{task.title}</div>
