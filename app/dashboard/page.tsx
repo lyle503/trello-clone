@@ -239,24 +239,6 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">
-                    Total boards
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {boards.length}
-                  </p>
-                </div>
-                <div className="h-10 w-10 sm:h-12 sm:w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Trello className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* BOARDS */}
@@ -287,11 +269,6 @@ export default function DashboardPage() {
                 <List />
               </Button>
             </div>
-
-            <Button variant="outline" size="lg" className="cursor-pointer">
-              <Filter />
-              Filter
-            </Button>
 
             {/* FIND A WAY TO MAKE THIS A REUSABLE COMPONENT */}
             {/* Biggest hurdle is the newColour state */}
@@ -369,10 +346,10 @@ export default function DashboardPage() {
         </div>
 
         {/* SEARCH BAR */}
-        <div className="relative mb-4 sm:mb-6">
+        {/* <div className="relative mb-4 sm:mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input id="search" placeholder="Search boards..." className="pl-10" />
-        </div>
+        </div> */}
 
         {/* BOARDS GRID/LIST */}
         {boards.length === 0 ? (

@@ -1,3 +1,4 @@
+import GuestButton from "@/components/guestbutton";
 import Navbar from "@/components/navbar";
 import Image from "next/image";
 
@@ -20,6 +21,9 @@ export default function Home() {
             , using TypeScript and TailwindCSS
           </p>
           <p className="text-xs my-5">built by Lyle Frankgate</p>
+        </div>
+        <div className="flex flex-col justify-center items-center my-12">
+          <GuestButton />
         </div>
       </main>
     </div>
