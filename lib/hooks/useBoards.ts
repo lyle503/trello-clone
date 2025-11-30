@@ -117,6 +117,16 @@ export function useBoard(boardId: string) {
     }
   }
 
+  async function deleteBoard(boardId: string) {
+    try {
+      const deletedBoard = await boardService.deleteBoard(supabase!, boardId);
+      setColumns([]);
+      return deletedBoard;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete board");
+    }
+  }
+
   async function createRealColumn(columnTitle: string, boardId: string) {
     try {
       if (!user) {
@@ -292,6 +302,7 @@ export function useBoard(boardId: string) {
     loading,
     error,
     updateBoard,
+    deleteBoard,
     createRealTask,
     createRealColumn,
     updateTask,

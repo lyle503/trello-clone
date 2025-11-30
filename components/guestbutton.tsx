@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import { useRouter } from "next/navigation";
 
 export default function GuestButton() {
   const { isLoaded, signIn } = useSignIn();
@@ -19,6 +20,8 @@ export default function GuestButton() {
   const { isSignedIn } = useUser();
 
   const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter();
 
   const handleGuestLogin = async () => {
     if (!isLoaded) return;
@@ -30,12 +33,12 @@ export default function GuestButton() {
         password: process.env.NEXT_PUBLIC_GUEST_PASSWORD!,
       });
       await setActive({ session: result.createdSessionId });
+      closeDialog();
+      router.push("/dashboard");
     } catch (e) {
       console.error(e);
       setIsLoading(false);
     }
-
-    closeDialog();
   };
 
   function closeDialog() {

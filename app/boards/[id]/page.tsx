@@ -34,7 +34,7 @@ import {
   Trash,
   User,
 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 
 type ColumnWrapper = {
@@ -562,6 +562,7 @@ export default function BoardPage() {
   const {
     board,
     updateBoard,
+    deleteBoard,
     columns,
     createRealTask,
     createRealColumn,
@@ -579,6 +580,8 @@ export default function BoardPage() {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  const router = useRouter();
+
   async function handleUpdateBoard(e: FormEvent) {
     e.preventDefault();
     if (!newTitle.trim() || !board) return;
@@ -590,6 +593,11 @@ export default function BoardPage() {
       });
       setIsEditingTitle(false);
     } catch (e) {}
+  }
+
+  async function handleDeleteBoard() {
+    await deleteBoard(board!.id);
+    router.push("/dashboard");
   }
 
   function getTotalTasks() {
@@ -955,6 +963,39 @@ export default function BoardPage() {
                     </div>
                   </form>
                 </DialogHeader>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="w-4 sm:w-auto cursor-pointer"
+                >
+                  Delete Board
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+                <DialogHeader>
+                  <DialogTitle>Delete Board?</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-gray-600">
+                  Are you sure you want to delete this board? This will delete
+                  all associated columns and tasks.
+                </p>
+                <Button
+                  variant="destructive"
+                  className="w-4 sm:w-auto cursor-pointer"
+                  onClick={handleDeleteBoard}
+                >
+                  Delete Board
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="w-4 sm:w-auto cursor-pointer"
+                >
+                  Cancel
+                </Button>
               </DialogContent>
             </Dialog>
           </div>

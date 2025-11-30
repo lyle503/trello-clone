@@ -62,6 +62,30 @@ export const boardService = {
 
     return data;
   },
+
+  async deleteBoard(
+    supabase: SupabaseClient,
+    boardId: string
+  ): Promise<BoardColumn> {
+    const [columns] = await Promise.all([
+      columnService.getColumns(supabase, boardId),
+    ]);
+
+    await Promise.all(
+      columns.map((column) => columnService.deleteColumn(supabase, column.id))
+    );
+
+    const { data, error } = await supabase
+      .from("boards")
+      .delete()
+      .eq("id", boardId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return data;
+  },
 };
 
 export const columnService = {
