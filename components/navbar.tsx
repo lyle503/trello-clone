@@ -1,6 +1,12 @@
 "use client";
 
-import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import {
+  SignInButton,
+  SignUpButton,
+  UserButton,
+  useUser,
+  useAuth,
+} from "@clerk/nextjs";
 import {
   ArrowLeft,
   ArrowRight,
@@ -34,6 +40,16 @@ export default function Navbar({
   const isDashboardPage = pathname === "/dashboard";
   const isBoardPage = pathname.startsWith("/boards/");
 
+  const { signOut } = useAuth();
+
+  async function handleSignOut() {
+    try {
+      await signOut(); // signs out current session
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    }
+  }
+
   if (isDashboardPage) {
     return (
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -47,7 +63,20 @@ export default function Navbar({
             </div>
           </Link>
           <div className="flex items-center gap-x-2 sm:gap-x-4">
-            <UserButton />
+            {user &&
+            user.emailAddresses[0].toString() !==
+              process.env.NEXT_PUBLIC_GUEST_USER ? (
+              <UserButton />
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="cursor-pointer"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            )}
           </div>
         </div>
       </header>
