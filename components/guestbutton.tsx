@@ -30,7 +30,7 @@ export default function GuestButton() {
     try {
       const result = await signIn.create({
         identifier: process.env.NEXT_PUBLIC_GUEST_USER!,
-        password: process.env.NEXT_PUBLIC_GUEST_PASSWORD!,
+        password: process.env.NEXT_PUBLIC_GUEST_PASSWORD!, // not secure in real world, this should not be public
       });
       await setActive({ session: result.createdSessionId });
       closeDialog();
