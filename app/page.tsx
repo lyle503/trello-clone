@@ -8,8 +8,8 @@ export default function Home() {
       <Navbar />
       <main>
         <div className="flex flex-col items-center pt-50">
-          <h1 className="text-5xl my-5">Welcome to TrelloClone</h1>
-          <p>
+          <h1 className="text-3xl sm:text-5xl my-5">Welcome to TrelloClone</h1>
+          <p className="text-sm text-center mx-4 sm:text-lg">
             A website built with{" "}
             <a href="https://nextjs.org/" target="_blank">
               Next.js
@@ -22,7 +22,7 @@ export default function Home() {
           </p>
           <p className="text-xs my-5">built by Lyle Frankgate</p>
         </div>
-        <div className="flex flex-col justify-center items-center my-12">
+        <div className="flex flex-col justify-center items-center my-10">
           <GuestButton />
         </div>
       </main>

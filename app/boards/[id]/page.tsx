@@ -258,6 +258,7 @@ type TaskWrapper = {
     updates: Partial<Task>
   ) => Promise<Task | undefined>;
   deleteTask: (columnId: string, taskId: string) => Promise<Task | undefined>;
+  closeDialog: () => void;
 };
 
 function TaskComponent({
@@ -267,6 +268,7 @@ function TaskComponent({
   updateTaskColumn,
   updateTask,
   deleteTask,
+  closeDialog,
 }: TaskWrapper) {
   const [movingTask, setMovingTask] = useState(false);
   const [columnValue, setColumnValue] = useState("");
@@ -333,23 +335,13 @@ function TaskComponent({
 
     if (taskData.title.trim()) {
       await updateTask(task.id, column.id, taskData);
-
-      // for closing the dialog after creating a task
-      // i don't like this though, want a better solution
-      const trigger = document.querySelector(
-        '[data-state="open"'
-      ) as HTMLElement;
-      if (trigger) trigger.click();
+      closeDialog();
     }
   }
 
   async function handleDeleteTask() {
     await deleteTask(column.id, task.id);
-
-    // for closing the dialog after creating a task
-    // i don't like this though, want a better solution
-    const trigger = document.querySelector('[data-state="open"') as HTMLElement;
-    if (trigger) trigger.click();
+    closeDialog();
   }
 
   return (
@@ -582,6 +574,11 @@ export default function BoardPage() {
 
   const router = useRouter();
 
+  function closeDialog() {
+    const trigger = document.querySelector('[data-state="open"') as HTMLElement;
+    if (trigger) trigger.click();
+  }
+
   async function handleUpdateBoard(e: FormEvent) {
     e.preventDefault();
     if (!newTitle.trim() || !board) return;
@@ -617,7 +614,10 @@ export default function BoardPage() {
     },
     sortOrder: number = 0
   ) {
-    const targetColumn = columns[sortOrder]; // always adding to first column - needs changed for relevant add task button
+    const targetColumn =
+      sortOrder === 0
+        ? columns[0]
+        : columns.filter((col) => col.sort_order == sortOrder)[0];
     if (!targetColumn) {
       throw new Error("No column available");
     }
@@ -642,13 +642,7 @@ export default function BoardPage() {
 
     if (taskData.title.trim()) {
       await createTask(taskData, sortOrder);
-
-      // for closing the dialog after creating a task
-      // i don't like this though, want a better solution
-      const trigger = document.querySelector(
-        '[data-state="open"'
-      ) as HTMLElement;
-      if (trigger) trigger.click();
+      closeDialog();
     }
   }
 
@@ -663,13 +657,7 @@ export default function BoardPage() {
 
     if (columnTitle.trim() && board) {
       await createColumn(columnTitle, board.id);
-
-      // for closing the dialog after creating a task
-      // i don't like this though, want a better solution
-      const trigger = document.querySelector(
-        '[data-state="open"'
-      ) as HTMLElement;
-      if (trigger) trigger.click();
+      closeDialog();
     }
   }
 
@@ -685,29 +673,20 @@ export default function BoardPage() {
 
     if (columnData.title.trim()) {
       await updateColumn(column.id, columnData);
-
-      // for closing the dialog after creating a task
-      // i don't like this though, want a better solution
-      const trigger = document.querySelector(
-        '[data-state="open"'
-      ) as HTMLElement;
-      if (trigger) trigger.click();
+      closeDialog();
     }
   }
 
   async function handleDeleteColumn(column: BoardColumnWithTasks) {
     await deleteColumn(column.id);
-
-    // for closing the dialog after creating a task
-    // i don't like this though, want a better solution
-    const trigger = document.querySelector('[data-state="open"') as HTMLElement;
-    if (trigger) trigger.click();
+    closeDialog();
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar
         boardTitle={board?.title}
+        boardColour={board?.colour}
         onEditBoard={() => {
           setNewTitle(board?.title ?? "");
           setNewDescription(board?.description ?? "");
@@ -744,7 +723,6 @@ export default function BoardPage() {
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 placeholder="Enter description..."
-                required
               />
             </div>
 
@@ -796,7 +774,7 @@ export default function BoardPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+      {/* <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
         <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
           <DialogHeader>
             <DialogTitle>Filter Tasks</DialogTitle>
@@ -815,16 +793,6 @@ export default function BoardPage() {
                 ))}
               </div>
             </div>
-            {/* <div className="space-y-2">
-              <Label>Assignee</Label>
-              <div className="flex flex-wrap gap-2">
-                {["low", "medium", "high"].map((priority, key) => (
-                  <Button key={key} variant={"outline"} size="sm">
-                    {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                  </Button>
-                ))}
-              </div>
-            </div> */}
             <div className="space-y-2">
               <Label>Due Date</Label>
               <Input type="date" />
@@ -840,7 +808,7 @@ export default function BoardPage() {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* BOARD CONTENT */}
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
@@ -858,7 +826,7 @@ export default function BoardPage() {
           <div className="flex items-center space-x-2">
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="w-4 sm:w-auto cursor-pointer">
+                <Button className="w-auto cursor-pointer">
                   <Plus />
                   Add Column
                 </Button>
@@ -882,7 +850,7 @@ export default function BoardPage() {
                     <Input
                       id="title"
                       name="title"
-                      placeholder="Enter task title"
+                      placeholder="Enter column title"
                     />
                   </div>
                   <div className="flex justify-end space-x-2 pt-4">
@@ -896,7 +864,7 @@ export default function BoardPage() {
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="w-4 sm:w-auto cursor-pointer">
+                <Button className="sm:w-auto cursor-pointer">
                   <Plus />
                   Add Task
                 </Button>
@@ -970,9 +938,10 @@ export default function BoardPage() {
               <DialogTrigger asChild>
                 <Button
                   variant="destructive"
-                  className="w-4 sm:w-auto cursor-pointer"
+                  className="sm:w-auto cursor-pointer"
                 >
-                  Delete Board
+                  <Trash />
+                  <span className="hidden sm:inline">Delete Board</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
@@ -985,14 +954,15 @@ export default function BoardPage() {
                 </p>
                 <Button
                   variant="destructive"
-                  className="w-4 sm:w-auto cursor-pointer"
+                  className="sm:w-auto cursor-pointer"
                   onClick={handleDeleteBoard}
                 >
                   Delete Board
                 </Button>
                 <Button
                   variant="secondary"
-                  className="w-4 sm:w-auto cursor-pointer"
+                  className="sm:w-auto cursor-pointer"
+                  onClick={closeDialog}
                 >
                   Cancel
                 </Button>
@@ -1025,9 +995,9 @@ export default function BoardPage() {
                     updateTaskColumn={updateTaskColumn}
                     updateTask={updateTask}
                     deleteTask={deleteTask}
+                    closeDialog={closeDialog}
                     key={key}
                   />
-                  //   <div key={key}>{task.title}</div>
                 ))}
               </div>
             </Column>

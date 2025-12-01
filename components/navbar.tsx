@@ -15,6 +15,7 @@ import { Badge } from "./ui/badge";
 
 interface NavbarProps {
   boardTitle?: string;
+  boardColour?: string;
   onEditBoard?: () => void;
   onFilterClick?: () => void;
   filterCount?: number;
@@ -22,6 +23,7 @@ interface NavbarProps {
 
 export default function Navbar({
   boardTitle,
+  boardColour = "text-blue-500",
   onEditBoard,
   onFilterClick,
   filterCount = 0,
@@ -69,7 +71,9 @@ export default function Navbar({
               <div className="h-4 sm:h-6 w-px bg-gray-300 hidden sm:block" />
               <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
                 {/* would be nice if this was colour from DB */}
-                <Trello className="text-blue-600" />
+                <Trello
+                  className={`${boardColour} rounded-md p-1 h-7.5 w-7.5 text-black`}
+                />
                 <div className="items-center space-x-1 sm:space-x-2 min-w-0">
                   <span className="text-lg font-bold text-gray-900 truncate">
                     {boardTitle}
@@ -88,7 +92,7 @@ export default function Navbar({
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
+            {/* <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
               {onFilterClick && (
                 <Button
                   variant="outline"
@@ -110,7 +114,7 @@ export default function Navbar({
                   )}
                 </Button>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
       </header>
@@ -123,7 +127,6 @@ export default function Navbar({
         <div className="flex items-center gap-2">
           <Trello className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
           <span className="text-xl sm:text-2xl font-bold text-gray-900">
-            {" "}
             Trello Clone
           </span>
         </div>
